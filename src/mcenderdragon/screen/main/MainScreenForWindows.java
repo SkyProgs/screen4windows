@@ -44,7 +44,20 @@ public class MainScreenForWindows
 			@Override
 			public void command(String[] args, int readPos) 
 			{
+				try 
+				{
+					ScreenService screen = new ScreenService(screen_port.getAsInt());
 				
+					
+					WebService web = new WebService(web_port.getAsInt(), screen);
+					web.start();
+					
+					screen.start();
+				}
+				catch (Exception e) 
+				{
+					e.printStackTrace();
+				}
 			}
 		});
 		

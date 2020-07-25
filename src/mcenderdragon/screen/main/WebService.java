@@ -68,6 +68,8 @@ public class WebService
 
 		try 
 		{
+			System.out.println("Starting Webside at " + webSidePort);
+			
 			// Set up the socket address
 			InetSocketAddress address = new InetSocketAddress("localhost", webSidePort);
 
