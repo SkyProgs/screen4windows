@@ -230,7 +230,9 @@ public class ApplicationStarter
 			e.printStackTrace();
 		}
 		
-		process.destroyForcibly();
+		if(process!=null)
+			process.destroyForcibly();
+		
 		if(server!=null && !server.isClosed())
 		{
 			try {
