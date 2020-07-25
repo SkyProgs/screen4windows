@@ -2,6 +2,10 @@
 
 You want to start something as a (windows) service (so headless, wihtoud a window) but you need to interact witht he console later? Yeah this is Screen and this should fix that. You start the screen server in the background and can then start a programm piped through the server so you can read its output later. Right now there is also a web part added so you can manage all added programms.
 
+## Execution
+
+`java -Doption1=value1 -Doption2=value2 -jar screen4windwors.jar <command>`
+
 
 ## Commands
 
