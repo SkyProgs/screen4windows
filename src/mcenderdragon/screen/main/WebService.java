@@ -71,7 +71,7 @@ public class WebService
 			System.out.println("Starting Webside at " + webSidePort);
 			
 			// Set up the socket address
-			InetSocketAddress address = new InetSocketAddress("localhost", webSidePort);
+			InetSocketAddress address = new InetSocketAddress(MainScreenForWindows.web_adress.get(), webSidePort);
 
 			// Initialise the HTTPS server
 			httpsServer = HttpsServer.create(address, 0);
@@ -293,6 +293,13 @@ public class WebService
 			try
 			{
 				InputStream in = MainScreenForWindows.class.getResourceAsStream(path);
+				if(in == null)
+				{
+					System.err.println("Could not load " + path);
+					String s = "Intern Server hickup no " + path;
+					sendAnswer(http, 500, s.getBytes(StandardCharsets.UTF_8));
+				}
+				
 				bout = new ByteArrayOutputStream(in.available());
 				byte[] b = new byte[1014];
 				while(in.available() > 0)

@@ -11,6 +11,7 @@ public class MainScreenForWindows
 {
 	public static BooleanSupplier need_authentication = () -> Boolean.getBoolean("screen.webservice.need_authentication");
 	public static IntSupplier screen_port = () -> Integer.getInteger("screen.port", 9153);
+	public static Supplier<String> web_adress = () -> System.getProperty("screen.webservice.adress", "localhost");
 	public static IntSupplier web_port = () -> Integer.getInteger("screen.webservice.port", 8087);
 	public static Supplier<String> auth_file = () -> System.getProperty("screen.webservice.auth_file", "users.txt");
 	public static Function<String,String> run_name = a -> System.getProperty("application.name", a);
@@ -35,7 +36,7 @@ public class MainScreenForWindows
 				{
 					command += " " + args[readPos];
 				}
-				ApplicationStarter starter = new ApplicationStarter("java -Xmx1024M -Xms1024M -jar ./server/forge-1.16.1-32.0.68.jar nogui ", MainScreenForWindows.screen_port.getAsInt());
+				ApplicationStarter starter = new ApplicationStarter(command, MainScreenForWindows.screen_port.getAsInt());
 				starter.start();
 			}
 		});
