@@ -26,7 +26,7 @@ public class ApplicationStarter
 	{
 		this.start_command = command;
 		this.server_port = serverPort;
-		name = MainScreenForWindows.run_name.apply(start_command + "\r\n");
+		name = MainScreenForWindows.run_name.apply(start_command)+"\r\n";
 	}
 	
 	public synchronized Process getOrCreateProcess() throws IOException 
