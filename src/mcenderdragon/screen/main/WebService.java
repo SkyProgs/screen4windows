@@ -139,15 +139,19 @@ public class WebService
 					public boolean checkCredentials(String username, String password) 
 					{
 						String hashed = sha256(password);
-						return users.getProperty(username, "").equals(hashed);
+						String table = users.getProperty(username, "");
+						boolean b = table.equals(hashed);
+						if(!b)
+							System.out.println(username + " password missmatch given " + hashed + " versus expected " + table);
+						return b;
 					}
 				};
 			}
-			addResourceDirect(httpsServer, "/index.html").setAuthenticator(auth);
-			addResourceDirect(httpsServer, "/icon.ico").setAuthenticator(auth);
-			addResourceDirect(httpsServer, "/core.css").setAuthenticator(auth);
-			addResourceDirect(httpsServer, "/script.js").setAuthenticator(auth);
-			addResourceDirect(httpsServer, "/ansi-up.js").setAuthenticator(auth);
+			addResourceDirect(httpsServer, "/index.html", "index.html").setAuthenticator(auth);
+			addResourceDirect(httpsServer, "/icon.ico", "icon.ico").setAuthenticator(auth);
+			addResourceDirect(httpsServer, "/core.css", "core.css").setAuthenticator(auth);
+			addResourceDirect(httpsServer, "/script.js", "script.js").setAuthenticator(auth);
+			addResourceDirect(httpsServer, "/ansi-up.js", "ansi-up.js").setAuthenticator(auth);
 			httpsServer.createContext("/data", this::onData).setAuthenticator(auth);
 			httpsServer.createContext("/", WebService::onIndex).setAuthenticator(auth);
 
@@ -285,10 +289,19 @@ public class WebService
 	{
 		return addResourceDirect(server, path, "."+path);
 	}
-	public static HttpContext addResourceDirect(HttpsServer server, String url, String path) throws IOException
+	public static HttpContext addResourceDirect(HttpsServer server, String url, String path_b) throws IOException
 	{
+		InputStream in_ = MainScreenForWindows.class.getResourceAsStream(path_b);
+		
+		String path = in_!=null ? path_b : "./" + path_b;
+		if(in_!=null)
+		{
+			in_.close();
+		}
+			
 		return server.createContext(url, http -> 
 		{
+			
 			ByteArrayOutputStream bout = null;
 			try
 			{
@@ -298,6 +311,7 @@ public class WebService
 					System.err.println("Could not load " + path);
 					String s = "Intern Server hickup no " + path;
 					sendAnswer(http, 500, s.getBytes(StandardCharsets.UTF_8));
+					return;
 				}
 				
 				bout = new ByteArrayOutputStream(in.available());
