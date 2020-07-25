@@ -15,6 +15,9 @@ public class MainScreenForWindows
 	public static Supplier<String> auth_file = () -> System.getProperty("screen.webservice.auth_file", "users.txt");
 	public static Function<String,String> run_name = a -> System.getProperty("application.name", a);
 	
+	public static Supplier<String> keystore_file = () -> System.getProperty("screen.webservice.ssl.file", "./testkey.jks");
+	public static Supplier<String> keystore_password = () -> System.getProperty("screen.webservice.ssl.password", "password");
+	
 	
 	public static void main(String[] args) 
 	{
@@ -56,6 +59,7 @@ public class MainScreenForWindows
 		{
 			if("help".equals(args[0]))
 			{
+				System.out.println("Read the Readme at: https://github.com/mcenderdragon/screen4windows/blob/master/Readme.md");
 				System.out.println("Commands are: ");
 				entries.forEach(System.out::println);
 			}

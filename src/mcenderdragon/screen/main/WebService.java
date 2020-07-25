@@ -76,9 +76,18 @@ public class WebService
 			SSLContext sslContext = SSLContext.getInstance("TLS");
 
 			// Initialise the keystore
-			char[] password = "password".toCharArray();
+			char[] password = MainScreenForWindows.keystore_password.get().toCharArray();
 			KeyStore ks = KeyStore.getInstance("JKS");
-			FileInputStream fis = new FileInputStream("./testkey.jks");
+			
+			File keys = new File(MainScreenForWindows.keystore_file.get());
+			if(!keys.exists())
+			{
+				System.err.println("KeyStore file (for HTTPS) '"+keys.toString()+"' not found");
+				System.out.println("Please run \"<your java path>/bin/keytool.exe -genkeypair -keyalg RSA -alias self_signed -keypass <password> -keystore lig.keystore -storepass <password>\"");
+				return;
+			}
+			
+			FileInputStream fis = new FileInputStream(keys);
 			ks.load(fis, password);
 
 			// Set up the key manager factory
