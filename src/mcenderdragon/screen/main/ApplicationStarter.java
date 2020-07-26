@@ -3,6 +3,7 @@ package mcenderdragon.screen.main;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -110,7 +111,8 @@ public class ApplicationStarter
 			}
 			else
 			{
-				Thread.sleep(100);
+				Thread.sleep(1000);
+				out.write(in.read());
 			}
 		}
 		
@@ -167,41 +169,62 @@ public class ApplicationStarter
 		try 
 		{
 			Socket s = connectToScreenServer();
+			
 			getOrCreateProcess();
 			
 			s.getOutputStream().write(name.getBytes(StandardCharsets.UTF_8));
-			name = null;
 			s.getOutputStream().write(0);
 			
 			Runnable[] runnables = new Runnable[3];
-			Thread output = new Thread(runnables[0] = this::writeOutputToServer, "output to server");
-			Thread error = new Thread(runnables[1] = this::writeErrorToServer, "error to server");
-			Thread input = new Thread(runnables[2] = this::readFromServer, "input from server");
-			Thread[] workers = new Thread[] {output, error, input};
-			for(Thread t : workers)
-			{
-				t.start();
-			}
+			runnables[0] = this::writeOutputToServer;
+			runnables[1] = this::writeErrorToServer;
+			runnables[2] = this::readFromServer;
+			
+			String[] threadNames = new String[] {"output to server", "error to server", "input from server"};
+			
+			Thread[] workers = new Thread[3];
+
 			
 			while(isRunning())
 			{
 				for(int i=0;i<workers.length;i++)
 				{
 					Thread t = workers[i];
+					if(t==null)
+					{
+						t = new Thread(runnables[i], threadNames[i]);
+						workers[i] = t;
+						System.out.println("Starting worker " + t.getName());
+						t.start();
+					}
 					if(!t.isAlive() && isRunning())
 					{
 						System.err.println("Worker " + t.getName() + " died!");
+						System.err.println("Closing Socket");
+						if(s!=null)
+							s.close();
+						
+						workers[i] = null;
+						t = null;
+							
 					}
 					if(!isServerAvailable())
 					{
 						System.out.println("Lost connection to screen server, reconnecting...");
-						connectToScreenServer();
-					}
-					else if(!t.isAlive() && isRunning())
-					{
-						Thread restart = new Thread(runnables[i], t.getName());
-						workers[i] = restart;
-						restart.start();
+						try
+						{
+							s = connectToScreenServer();
+							if(s!=null)
+							{
+								System.out.println("Reconnected");
+								s.getOutputStream().write(name.getBytes(StandardCharsets.UTF_8));
+								s.getOutputStream().write(0);
+							}
+						}
+						catch(ConnectException e)
+						{
+							System.out.println(e);
+						}
 					}
 				}
 				

@@ -233,8 +233,16 @@ public class ScreenService implements Closeable
 					{
 						try
 						{
+							long time = System.currentTimeMillis();
 							readLines();
-							Thread.sleep(250);
+							time = System.currentTimeMillis() - time;
+							
+							if(time > 10)
+							{
+								Thread.sleep(250);
+							}
+							
+							
 						}
 						catch(Exception e)
 						{
