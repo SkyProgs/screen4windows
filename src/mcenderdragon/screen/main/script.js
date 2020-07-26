@@ -14,17 +14,25 @@ function getConsoleOutput()
 
 var ansi_up = new AnsiUp;
 
-function addLineToConsole(txt)
+function makeHTMLentries(txt)
 {
     var html = ansi_up.ansi_to_html(txt);
-    var cdiv = document.getElementById("console");
+    
     if(html.length == 0)
     {
         html = " ";
     }
     html = "<p class='line'>" + html + "</p>";
-    cdiv.innerHTML += html;
+    return html;
 }
+
+function addLineToConsole(txt)
+{
+    var cdiv = document.getElementById("console");
+    cdiv.innerHTML += makeHTMLentries(txt);
+}
+
+
 
 function addToConsole(txt)
 {
@@ -100,6 +108,21 @@ function getActiveEntry()
     }
 }
 
+var prepareTextAsync = function(lines) {
+    return new Promise(resolve => {
+        var rawHTML = "";
+        lines.forEach(e => {
+            if(lastLine < e.line)
+            {
+                lastLine = e.line;
+                rawHTML += makeHTMLentries(e.text);
+            }
+        });
+        resolve(rawHTML);
+    });
+}; 
+
+
 var lastLine = -1;
 
 function retriveConsoleEntries(lineStart)
@@ -109,22 +132,17 @@ function retriveConsoleEntries(lineStart)
     {
         var xhttp = new XMLHttpRequest(); 
         xhttp.open("POST", "data", true);
-        xhttp.onreadystatechange = function() 
+        xhttp.onreadystatechange = async function() 
         {
             if (this.readyState == 4 && this.status == 200) 
             {
                 var lines = JSON.parse(this.responseText);
-                var downScolled = preAutoscroll();    
+                   
+                var downScolled = preAutoscroll(); 
 
-                lines.forEach(e => {
-                    if(lastLine < e.line)
-                    {
-                        lastLine = e.line;
-                        addLineToConsole(e.text);
-                    }
-                });
+                var emptyDiv = document.getElementById("console").appendChild(document.createElement("div"));
 
-                postAutoscroll(downScolled);
+                prepareTextAsync(lines).then((rawHTML) => emptyDiv.innerHTML = rawHTML).then((dat) => postAutoscroll(downScolled));
             } 
         };
         xhttp.send("action=get_log&server=" + selected + "&line_start="+lineStart);
@@ -153,6 +171,9 @@ function getLastLine()
 {
     return lastLine;
 }
+
+
+ 
 
 var txt  = "\n\n\033[1;33;40m 33;40  \033[1;33;41m 33;41  \033[1;33;42m 33;42  \033[1;33;43m 33;43  \033[1;33;44m 33;44  \033[1;33;45m 33;45  \033[1;33;46m 33;46  \033[1m\033[0\n\n\033[1;33;42m >> Tests OK\n\n";
 /*setInterval(function()
