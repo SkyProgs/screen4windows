@@ -23,31 +23,26 @@ public class ScreenService implements Closeable
 	
 	private int port;
 	
-	private Object lock = new Object();
+	private final Object lock = new Object();
 	
 	private List<Client> newClients = new ArrayList<>(5);
-	private Map<Integer, Client> clients = Collections.synchronizedMap(new HashMap<>());
+	private final Map<Integer, Client> clients = Collections.synchronizedMap(new HashMap<>());
 	
-	private Thread server;
-	private ServerSocket serverSocket;
+	private final Thread server;
+	private final ServerSocket serverSocket;
 	
 	public ScreenService(int port) throws IOException
 	{
 		System.out.println("Opening Screen Server at " + port);
 		this.port = port;
 		
-		server = new Thread(new Runnable()
-		{
-			@Override
-			public void run() 
+		server = new Thread(() -> {
+			while(shouldRun)
 			{
-				while(shouldRun)
-				{
-					try {
-						awaitNewConnection();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
+				try {
+					awaitNewConnection();
+				} catch (IOException e) {
+					e.printStackTrace();
 				}
 			}
 		});
@@ -120,12 +115,13 @@ public class ScreenService implements Closeable
 	
 	public static class Client implements Closeable
 	{
-		private Socket connection;
+		private final Socket connection;
 		private int startLine = 0;
-		private List<String> lines;
-		private BufferedReader in;
+		private final List<String> lines;
+		private final BufferedReader in;
 		
 		public String name;
+		public String group;
 	
 		private Thread thread;
 		
@@ -202,7 +198,6 @@ public class ScreenService implements Closeable
 			catch(IOException e)
 			{
 				connection.close();
-				return;
 			}
 		}
 
@@ -218,39 +213,35 @@ public class ScreenService implements Closeable
 			try 
 			{
 				name = in.readLine();
-				System.out.println("Client " + hashCode() + " name is " + name);
+				group = in.readLine();
+				System.out.println("Client " + hashCode() + " name is " + name + " and group is " + group);
 			}
 			catch (IOException e) 
 			{
 				e.printStackTrace();
 			}
-			thread = new Thread(new Runnable()
-			{
-				@Override
-				public void run() 
+			thread = new Thread(() -> {
+				while(isAlive())
 				{
-					while(isAlive())
+					try
 					{
-						try
+						long time = System.currentTimeMillis();
+						readLines();
+						time = System.currentTimeMillis() - time;
+
+						if(time > 10)
 						{
-							long time = System.currentTimeMillis();
-							readLines();
-							time = System.currentTimeMillis() - time;
-							
-							if(time > 10)
-							{
-								Thread.sleep(250);
-							}
-							
-							
+							Thread.sleep(250);
 						}
-						catch(Exception e)
-						{
-							e.printStackTrace();
-						}
+
+
 					}
-					System.out.println("Client " + Client.this.hashCode() + " finished");
+					catch(Exception e)
+					{
+						e.printStackTrace();
+					}
 				}
+				System.out.println("Client " + Client.this.hashCode() + " finished");
 			}, name);
 			thread.start();
 		}
@@ -268,6 +259,17 @@ public class ScreenService implements Closeable
 		}
 	}
 
+	public boolean deleteClient(int hex) throws IOException {
+		Client c = this.clients.get(hex);
+		if(c != null) {
+			if(c.isAlive()) {
+				return false;
+			}
+			c.close();
+			this.clients.remove(hex);
+		}
+		return true;
+	}
 
 	public Map<Integer, Client> getClients() 
 	{

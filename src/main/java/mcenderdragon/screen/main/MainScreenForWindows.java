@@ -1,5 +1,8 @@
 package mcenderdragon.screen.main;
 
+import mcenderdragon.screen.startup.StartupLoader;
+import mcenderdragon.screen.web.WebService;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
@@ -19,24 +22,38 @@ public class MainScreenForWindows
 	public static Supplier<String> keystore_file = () -> System.getProperty("screen.webservice.ssl.file", "./testkey.jks");
 	public static Supplier<String> keystore_password = () -> System.getProperty("screen.webservice.ssl.password", "password");
 	
-	
 	public static void main(String[] args) 
 	{
 		
-		List<CommandEntry> entries = new ArrayList(2);
-		
+		List<CommandEntry> entries = new ArrayList<>(3);
+
+		entries.add(new CommandEntry("config", "starts all services from a configuration file defined after \"config\". example: \"config startup.json\" will load startup.json and execute the content") {
+			@Override
+			public void command(String[] args, int readPos) {
+				StringBuilder filePath = new StringBuilder(args[readPos]);
+				readPos++;
+				for(;readPos<args.length;readPos++)
+				{
+					filePath.append(" ").append(args[readPos]);
+				}
+
+				StartupLoader loader = new StartupLoader(filePath.toString());
+				loader.parseConfig();
+			}
+		});
+
 		entries.add(new CommandEntry("run", "run a programm with the speicified args, like \"run ping google\" will execute \"ping google\" and connect it to the screen server.") 
 		{
 			@Override
 			public void command(String[] args, int readPos) 
 			{
-				String command = args[readPos];
+				StringBuilder command = new StringBuilder(args[readPos]);
 				readPos++;
 				for(;readPos<args.length;readPos++)
 				{
-					command += " " + args[readPos];
+					command.append(" ").append(args[readPos]);
 				}
-				ApplicationStarter starter = new ApplicationStarter(command, MainScreenForWindows.screen_port.getAsInt());
+				ApplicationStarter starter = new ApplicationStarter(command.toString(), MainScreenForWindows.screen_port.getAsInt());
 				starter.start();
 			}
 		});
@@ -64,13 +81,11 @@ public class MainScreenForWindows
 		
 		
 		
-		if(args.length==0)
+		if(args.length == 0)
 		{
 			System.out.println("run help for more info.");
-			return;
 		}
-		else if(args.length >= 1)
-		{
+		else {
 			if("help".equals(args[0]))
 			{
 				System.out.println("Read the Readme at: https://github.com/mcenderdragon/screen4windows/blob/master/Readme.md");
@@ -90,25 +105,6 @@ public class MainScreenForWindows
 				System.out.println("unknown command, use help for more info");
 			}
 		}
-		
-//		try 
-//		{
-//			ScreenService screen = new ScreenService(screen_port.getAsInt());
-//		
-//			
-//			WebService web = new WebService(web_port.getAsInt(), screen);
-//			web.start();
-//			
-//			screen.start();
-//		}
-//		catch (Exception e) {
-//			e.printStackTrace();
-//		}
-		
-		
-		
-		
-		
 	}
 	
 	public static abstract class CommandEntry

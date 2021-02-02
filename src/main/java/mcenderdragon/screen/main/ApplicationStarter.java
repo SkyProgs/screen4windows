@@ -1,12 +1,12 @@
 package mcenderdragon.screen.main;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
 import java.util.function.BooleanSupplier;
@@ -14,20 +14,28 @@ import java.util.function.BooleanSupplier;
 public class ApplicationStarter 
 {
 	private Process process;
-	private String start_command;
+	private final String start_command;
+	private final String directory;
 	private boolean started;
 	private boolean running;
 	
-	private int server_port;
+	private final int server_port;
 	
 	private Socket server;
-	private String name;
-	
-	public ApplicationStarter(String command, int serverPort) 
+	private final String name;
+	private final String group;
+
+	public ApplicationStarter(String command, int serverPort) {
+		this(command, serverPort, null, MainScreenForWindows.run_name.apply(command), "default");
+	}
+
+	public ApplicationStarter(String command, int serverPort, String directory, String name, String group)
 	{
 		this.start_command = command;
 		this.server_port = serverPort;
-		name = MainScreenForWindows.run_name.apply(start_command)+"\r\n";
+		this.directory = directory;
+		this.name = name+"\r\n";
+		this.group = group+"\r\n";
 	}
 	
 	public synchronized Process getOrCreateProcess() throws IOException 
@@ -37,6 +45,8 @@ public class ApplicationStarter
 			return this.process;
 		}
 		ProcessBuilder builder = new ProcessBuilder(this.start_command.split(" "));
+		if(this.directory != null)
+			builder.directory(new File(this.directory));
 		builder.environment().put("MSYSTEM", "MINGW-managment");//this is to disable jline support; if jline is active it will crash later on and we cant communicate with the server/program
 		builder.redirectOutput(ProcessBuilder.Redirect.PIPE);
 		builder.redirectError(ProcessBuilder.Redirect.PIPE);
@@ -64,7 +74,7 @@ public class ApplicationStarter
 		return false;
 	}
 	
-	public synchronized Socket connectToScreenServer() throws UnknownHostException, IOException
+	public synchronized Socket connectToScreenServer() throws IOException
 	{
 		if(server == null || server.isClosed() || !server.isConnected())
 		{
@@ -85,7 +95,7 @@ public class ApplicationStarter
 		return server != null && !server.isClosed() && server.isConnected();
 	}
 	
-	public static void traferData(Callable<InputStream> suppIn, Callable<OutputStream> suppOut, BooleanSupplier isRunning, boolean isError) throws Exception
+	public static void transferData(Callable<InputStream> suppIn, Callable<OutputStream> suppOut, BooleanSupplier isRunning, boolean isError) throws Exception
 	{
 		byte[] redBg = "\u001b[41m".getBytes(StandardCharsets.UTF_8);
 		byte[] reset = "\u001b[0m".getBytes(StandardCharsets.UTF_8);
@@ -136,7 +146,7 @@ public class ApplicationStarter
 	{
 		try {
 			Process p = getOrCreateProcess();
-			traferData(p::getInputStream, server::getOutputStream, p::isAlive, false);
+			transferData(p::getInputStream, server::getOutputStream, p::isAlive, false);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -146,7 +156,7 @@ public class ApplicationStarter
 	{
 		try {
 			Process p = getOrCreateProcess();
-			traferData(p::getErrorStream, server::getOutputStream, p::isAlive, true);
+			transferData(p::getErrorStream, server::getOutputStream, p::isAlive, true);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -157,7 +167,7 @@ public class ApplicationStarter
 	{
 		try {
 			Process p = getOrCreateProcess();
-			traferData(server::getInputStream, p::getOutputStream, p::isAlive, false);
+			transferData(server::getInputStream, p::getOutputStream, p::isAlive, false);
 		} catch (Exception e) 
 		{
 			e.printStackTrace();
@@ -173,6 +183,7 @@ public class ApplicationStarter
 			getOrCreateProcess();
 			
 			s.getOutputStream().write(name.getBytes(StandardCharsets.UTF_8));
+			s.getOutputStream().write(group.getBytes(StandardCharsets.UTF_8));;
 			s.getOutputStream().write(0);
 			
 			Runnable[] runnables = new Runnable[3];
@@ -223,7 +234,7 @@ public class ApplicationStarter
 						}
 						catch(ConnectException e)
 						{
-							System.out.println(e);
+							System.out.println(e.toString());
 						}
 					}
 				}

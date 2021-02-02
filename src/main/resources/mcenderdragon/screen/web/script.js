@@ -4,7 +4,7 @@ function getConsoleOutput()
 {
     var xhttp = new XMLHttpRequest(); 
     xhttp.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
+        if (this.readyState === 4 && this.status === 200) {
           document.getElementById("console").innerHTML = this.responseText;
         }
       };
@@ -18,7 +18,7 @@ function makeHTMLentries(txt)
 {
     var html = ansi_up.ansi_to_html(txt);
     
-    if(html.length == 0)
+    if(html.length === 0)
     {
         html = " ";
     }
@@ -59,40 +59,99 @@ function postAutoscroll(downScolled)
     downScolled.forEach(elm => elm.scrollTop = elm.scrollHeight);
 }
 
+function deleteServer(id) {
+    const xhttp = new XMLHttpRequest();
+    xhttp.open("POST", "data", true);
+    xhttp.onreadystatechange = function()
+    {
+        if (this.readyState === 4 && this.status === 200)
+        {
+            updateServerList(JSON.parse(this.responseText));
+        }
+        else if(this.readyState === 4 && this.status === 403) {
+            alert('Client is stil running and cannot be deleted.');
+        }
+    };
+    xhttp.send("action=delete_inactive&server=" + id);
+}
+
+function updateServerList(serverList) {
+    const activeEntry = getActiveEntry();
+    const serversParent = document.getElementById("servers");
+
+    const groups = {};
+
+    serverList.forEach(e => {
+        if(groups[e.group] === undefined) {
+            groups[e.group] = [];
+        }
+
+        groups[e.group].push(e);
+    })
+
+    let output = '';
+    let activeClientInstance = null;
+
+    Object.keys(groups).sort((e1,e2) => e1.name < e2.name ? -1 : 1).forEach(group => {
+        //Sort groups from A to Z
+        groups[group] = groups[group].sort((e1,e2) => e1.name < e2.name ? -1 : 1);
+
+        output += `<div class="groupTitle">${group}</div>`;
+
+        output += groups[group].map(e => {
+            let active = e.id === activeEntry;
+
+            if(active) {
+                activeClientInstance = e;
+            }
+
+            return `<div class="entry ${active ? "active" : ""}">
+                    <a href="index.html?server=${e.id}">
+                        <div class="name">
+                            ${e.name}
+                        </div>
+                    </a>
+                    <div class="running_${e.running}">
+                        Running: ${e.running}
+                    </div>
+                    ${e.running ? '' : `
+                        <button onclick="deleteServer('${e.id}')">
+                            Delete
+                        </button>
+                    `}
+                </div>`;
+        }).join('\n');
+
+    })
+
+    serversParent.innerHTML = output;
+
+    if(activeClientInstance !== null) {
+        let animation = document.getElementById("loading_animation");
+        if(activeClientInstance.running)
+        {
+            animation.style = "";
+        }
+        else
+        {
+            animation.style.display="none";
+            clearInterval(refreshId);
+        }
+    }
+}
 
 function retriveServerList()
 {
-    var sel = getActiveEntry();
-    var xhttp = new XMLHttpRequest(); 
+    const xhttp = new XMLHttpRequest();
     xhttp.open("POST", "data", true);
     xhttp.onreadystatechange = function() 
     {
-        if (this.readyState == 4 && this.status == 200) 
+        if (this.readyState === 4 && this.status === 200)
         {
-            var elm = document.getElementById("servers");
-            elm.innerHTML = "";
-            var json_ = JSON.parse(this.responseText);
-            json_.forEach(e => {
-                var active = sel == e.id;
-                var server_HTML_entry = "<a href=index.html?server=" + e.id +"><div class=\"entry " + (active ? "active" : "") +"\"><div class=name>"+e.name+"</div><div class=running_"+e.running+"> Running: "+e.running+"</div></div>";
-                elm.innerHTML+=server_HTML_entry;
-                if(active)
-                {
-                    var animation = document.getElementById("loading_animation");
-                    if(e.running)
-                    {
-                        animation.style="";
-                    }
-                    else
-                    {
-                        animation.style.display="none";
-                        clearInterval(refreshId);
-                    }
-                }
-            });
+            updateServerList(JSON.parse(this.responseText));
         } 
     };
-    xhttp.send("action=get_servers");
+    xhttp.send("action=get_clients");
 }
 
 function getActiveEntry()
@@ -128,13 +187,13 @@ var lastLine = -1;
 function retriveConsoleEntries(lineStart)
 {
     var selected = getActiveEntry();
-    if(selected != undefined)
+    if(selected !== undefined)
     {
         var xhttp = new XMLHttpRequest(); 
         xhttp.open("POST", "data", true);
         xhttp.onreadystatechange = async function() 
         {
-            if (this.readyState == 4 && this.status == 200) 
+            if (this.readyState === 4 && this.status === 200)
             {
                 var lines = JSON.parse(this.responseText);
                    
