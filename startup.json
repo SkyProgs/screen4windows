@@ -1,0 +1,8 @@
+[
+  {
+    "name": "Ping Google",
+    "directory": "C:\\Test\\Example",
+    "cmd": "ping google.de",
+    "group": "Examples"
+  }
+]
